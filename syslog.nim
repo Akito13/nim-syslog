@@ -22,6 +22,20 @@ when threadsOptionOn:
 # Maximum ident (APP-NAME) length - it is limited for GC safety
 const identMaxLengh = 1024
 
+# Ensure that `uint8` is set for `TSa_Family` on BSD-based systems
+when system.hostOS == "linux":
+  const BSD = false
+elif system.hostOS == "macosx":
+  const BSD = true
+elif system.hostOS == "netbsd":
+  const BSD = true
+elif system.hostOS == "freebsd":
+  const BSD = true
+elif system.hostOS == "openbsd":
+  const BSD = true
+else:
+  const BSD = false
+
 type
   # severity codes
   SyslogSeverity* = enum
@@ -133,7 +147,10 @@ proc releaseSyslogLock() =
 
 # Internal procs (used inside critical section)
 proc reopenSyslogConnectionInternal() =
-  var sock_addr {.global.}: Sockaddr_un = Sockaddr_un(sun_family: posix.AF_UNIX.uint16, sun_path: syslog_socket_fname_a)
+  if BSD == false:
+    var sock_addr {.global.}: Sockaddr_un = Sockaddr_un(sun_family: posix.AF_UNIX.uint16, sun_path: syslog_socket_fname_a)
+  else:
+    var sock_addr {.global.}: Sockaddr_un = Sockaddr_un(sun_family: posix.AF_UNIX.uint8, sun_path: syslog_socket_fname_a)
   let addr_len {.global.} = Socklen(sizeof(sock_addr))
   if sock == SocketHandle(-1):
     sock = socket(AF_UNIX, SOCK_DGRAM, 0)
